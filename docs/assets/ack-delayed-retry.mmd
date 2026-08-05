@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {
+  'lineColor': '#B0BEC5',
+  'fontFamily': 'Arial'
+}}}%%
+flowchart LR
+    subgraph Past["更早（修复前）"]
+        P1["你发「测试连接」"]
+        P2["我们慢 ACK"]
+        P3["飞书记入重试队列"]
+    end
+
+    subgraph Later["后来（例如 10:12）"]
+        L1["飞书延迟重投<br/>同一 message_id"]
+        L2{"当时 reload?"}
+        L3["内存去重清空"]
+        L4["又对旧线程发思考中"]
+        L5["现在有 DB 去重<br/>→ 静默跳过"]
+    end
+
+    P1 --> P2 --> P3
+    P3 --> L1
+    L1 --> L2
+    L2 -->|是| L3 --> L4
+    L2 -->|现在| L5
+
+    classDef past fill:#5D4037,stroke:#FFCC80,color:#FFFFFF,stroke-width:2px
+    classDef bad fill:#B71C1C,stroke:#FFCDD2,color:#FFFFFF,stroke-width:2px
+    classDef good fill:#1B5E20,stroke:#A5D6A7,color:#FFFFFF,stroke-width:2px
+    classDef decision fill:#1565C0,stroke:#90CAF9,color:#FFFFFF,stroke-width:2px
+
+    class P1,P2,P3 past
+    class L3,L4 bad
+    class L5 good
+    class L1,L2 decision

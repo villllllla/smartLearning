@@ -1,0 +1,12 @@
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+smartlearning_backend.egg-info
+data/*.db
+data/uploads
+data/wikis
+data/attachments
+.env
+

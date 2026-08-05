@@ -1,0 +1,15 @@
+{
+  "vault_path": "C:\\Users\\zz34z\\AppData\\Local\\Temp\\pytest-of-zz34z\\pytest-51\\test_sync_creates_and_updates_0\\vault",
+  "mappings": {
+    "redis.md": {
+      "wiki_id": 1,
+      "last_mtime": 1785972442.9375675,
+      "last_content_hash": "5490596c3823ea35752b222fcfe7b5ed"
+    }
+  },
+  "last_full_scan_at": "2026-08-05T23:27:22.988372+00:00",
+  "last_file_sync_at": "2026-08-05T23:27:22.988372+00:00",
+  "recent_events": [
+    "[2026-08-05 23:27:22 UTC] full scan: 0 created, 0 updated, 1 skipped, 0 failed, 0 wikis repaired, 0 wiki duplicates removed"
+  ]
+}

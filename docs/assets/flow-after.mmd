@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant Feishu
+    participant Webhook as router.py
+    participant BG as BackgroundTasks
+    participant LLM
+    participant Push as execute_push
+
+    Feishu->>Webhook: POST event
+    Webhook->>Webhook: 校验 + 去重
+    Webhook-->>Feishu: 200 OK (<100ms)
+    Webhook->>BG: add_task
+    BG->>Feishu: reply 思考中…
+    BG->>LLM: 意图识别（如需）
+    BG->>Push: 抽题 + 发送
+    BG->>Feishu: reply 汇总
+    Note over Feishu: 已 ACK，不再重试

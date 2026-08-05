@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryTextColor': '#FFFFFF',
+  'lineColor': '#B0BEC5',
+  'fontFamily': 'Arial'
+}}}%%
+flowchart TB
+    subgraph Feishu["飞书平台关心什么"]
+        A["用户发消息"]
+        B["POST 到你的 Webhook"]
+        C{"3 秒内收到<br/>HTTP 200 ?"}
+        D["✅ 事件已确认<br/>一般不再因超时重试"]
+        E["❌ 未确认<br/>→ 重试投递"]
+    end
+
+    subgraph You["我们后端实际在做"]
+        G["收到 POST"]
+        H["返回 200 ok"]
+        I["思考中 / LLM / 推题<br/>（飞书不关心是否做完）"]
+    end
+
+    A --> B --> G
+    G --> H
+    H --> C
+    C -->|是| D
+    C -->|否| E
+    E --> B
+    G -.-> I
+    H -.->|"修复后：几乎立刻"| H
+
+    classDef feishu fill:#1565C0,stroke:#90CAF9,color:#FFFFFF,stroke-width:2px
+    classDef ok fill:#1B5E20,stroke:#A5D6A7,color:#FFFFFF,stroke-width:2px
+    classDef fail fill:#B71C1C,stroke:#FFCDD2,color:#FFFFFF,stroke-width:2px
+    classDef ours fill:#6A1B9A,stroke:#E1BEE7,color:#FFFFFF,stroke-width:2px
+    classDef decision fill:#E65100,stroke:#FFE0B2,color:#FFFFFF,stroke-width:2px
+
+    class A,B feishu
+    class D ok
+    class E fail
+    class G,H,I ours
+    class C decision

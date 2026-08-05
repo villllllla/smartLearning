@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryColor': '#1565C0',
+  'primaryTextColor': '#FFFFFF',
+  'primaryBorderColor': '#90CAF9',
+  'lineColor': '#E0E0E0',
+  'secondaryColor': '#37474F',
+  'tertiaryColor': '#1B5E20',
+  'fontFamily': 'Arial'
+}}}%%
+flowchart TB
+    Start(["用户发一条飞书消息"]) --> Post["飞书 POST Webhook"]
+
+    Post --> Branch{"我们何时返回 200?"}
+
+    Branch -->|"修复前：业务做完才返回"| Slow["同步处理 LLM / 推题<br/>常常超过 3 秒"]
+    Slow --> Retry["飞书：未收到及时 ACK<br/>→ 重试投递"]
+    Retry --> Dup["可能重复：思考中 / 两套题卡"]
+
+    Branch -->|"修复后：校验+去重后立刻返回"| Fast["约 100ms 内返回 200"]
+    Fast --> OK["飞书：已 ACK<br/>→ 通常不再超时重试"]
+    Fast --> BG["后台慢慢做业务"]
+    BG --> Reply["用户收到：思考中 + 最终结果"]
+
+    Dup --> Reload{"开发时 uvicorn --reload?"}
+    Reload -->|是| MemClear["内存去重表被清空"]
+    MemClear --> Dup2["同一 message_id 又被处理"]
+    Reload -->|"否，且有 DB 去重"| Skip["已处理过的 message_id<br/>→ 直接跳过，不再回复"]
+
+    classDef bad fill:#B71C1C,stroke:#FFCDD2,color:#FFFFFF,stroke-width:2px
+    classDef good fill:#1B5E20,stroke:#A5D6A7,color:#FFFFFF,stroke-width:2px
+    classDef neutral fill:#455A64,stroke:#CFD8DC,color:#FFFFFF,stroke-width:2px
+    classDef decision fill:#5D4037,stroke:#FFCC80,color:#FFFFFF,stroke-width:2px
+    classDef start fill:#0D47A1,stroke:#90CAF9,color:#FFFFFF,stroke-width:2px
+
+    class Slow,Retry,Dup,Dup2 bad
+    class Fast,OK,Skip good
+    class BG,Reply,Post neutral
+    class Branch,Reload decision
+    class Start start

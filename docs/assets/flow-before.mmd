@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant Feishu
+    participant Webhook as router.py
+    participant LLM
+    participant Push as execute_push
+
+    Feishu->>Webhook: POST event
+    Webhook->>Feishu: reply 思考中…
+    Webhook->>LLM: 意图识别
+    LLM-->>Webhook: push_now
+    Webhook->>Push: 抽题 + send_text_to_chat
+    Webhook->>Feishu: reply 已推送…
+    Note over Feishu: 已 >3s，可能重试
+    Webhook-->>Feishu: 200 OK
+    Feishu->>Webhook: POST 重试
+    Webhook->>Push: 再次抽题推送

@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+*.log
+
+# Editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Runtime data.
+# Path-independent on purpose: the app creates a data/ dir relative to wherever
+# it was started, so these exist under both backend/data/ and a stray root
+# data/. Anchored rules missed the root copy — including its .secret_key, which
+# is the master key for the provider API keys stored in the database.
+*.db
+*.db-shm
+*.db-wal
+*.db.backup-*
+*.bak-*
+.secret_key
+
+backend/data/uploads/
+backend/data/wikis/
+backend/data/attachments/
+data/uploads/
+data/wikis/
+data/attachments/
+!backend/data/.gitkeep
+
+# Env — never commit these, they carry provider keys and the bot token
+.env
+.env.cloud
+.env.local
+*.local
+
+# Build/tooling artifacts
+*.tsbuildinfo
+.claude/settings.local.json
+
+# Cloudflare tunnel binary (53MB) and its foreground-run scratch files
+cloudflared-windows-amd64.exe
+_cfrun.*

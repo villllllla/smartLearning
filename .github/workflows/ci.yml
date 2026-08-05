@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push supersedes an in-flight run on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (ruff + pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      # No [rag] extra on purpose: it drags in torch (~2GB) and the production
+      # image doesn't ship it either. Tests must stay runnable without it.
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest -q
+
+  frontend:
+    name: Frontend (tsc + vite build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # `npm run build` is `tsc -b && vite build`, so this is the typecheck too.
+      # There is no eslint gate — see docs/ci-cd.md「已知欠账」.
+      - name: Typecheck + build
+        run: npm run build
+
+  images:
+    name: Images (build + health smoke)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          load: true
+          tags: smartlearning-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile.prod
+          push: false
+          load: true
+          tags: smartlearning-frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Catches the class of bug where the image builds but can't boot —
+      # a missing runtime dep or a migration that fails on a fresh database.
+      - name: Smoke test backend image
+        run: |
+          docker run -d --name sl-ci -p 8000:8000 \
+            -e SL_DATABASE_URL=sqlite:///./data/ci.db \
+            smartlearning-backend:ci \
+            sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/api/health > /dev/null; then
+              echo "backend healthy"
+              docker rm -f sl-ci
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::backend never became healthy"
+          docker logs sl-ci
+          docker rm -f sl-ci
+          exit 1

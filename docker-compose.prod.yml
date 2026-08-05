@@ -1,0 +1,49 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartlearning-backend
+    restart: unless-stopped
+    env_file:
+      - ./.env.cloud
+    environment:
+      SL_HOST: 0.0.0.0
+      SL_PORT: 8000
+      SL_DATABASE_URL: sqlite:///./data/smartlearning.db
+      SL_DATA_DIR: ./data
+      # nginx always fronts the backend here, so forwarding headers are
+      # trustworthy — without this every client shares one rate-limit bucket.
+      SL_TRUST_PROXY_HEADERS: "true"
+      # Never publish the API schema from a deployed stack.
+      SL_API_DOCS_ENABLED: "false"
+    volumes:
+      # Bind-mounted (not a named volume) so the deployment serves the real
+      # question bank / wikis / provider keys. Consequence: this is the SAME
+      # SQLite file the dev server uses — never run both at once.
+      - ./backend/data:/app/data
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: smartlearning-frontend
+    restart: unless-stopped
+    ports:
+      # Loopback only: cloudflared reaches it from the host, but the app is not
+      # exposed to the LAN (where it would be plain HTTP with no Cloudflare in
+      # front). Drop the 127.0.0.1 prefix only if a real edge proxy replaces it.
+      - "127.0.0.1:80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
