@@ -17,7 +17,10 @@ dependencies = [
     "markdown-it-py>=3.0",
     "python-slugify>=8.0",
     "watchdog>=4.0",
-    "tzdata>=2024.1; sys_platform == 'win32'",
+    # Not win32-only: python:*-slim ships no system tz database either, so
+    # zoneinfo lookups (and migration 0011, which seeds the tz catalog) fail in
+    # the container. Bundling the PyPI copy makes it independent of the base image.
+    "tzdata>=2024.1",
 ]
 
 [project.optional-dependencies]
