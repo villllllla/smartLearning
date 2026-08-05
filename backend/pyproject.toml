@@ -40,6 +40,14 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["app*"]
 
+[tool.pytest.ini_options]
+# `eval` is a dev-only harness, deliberately not part of the installed package
+# (see include above), but tests/test_agent_routing_eval.py imports it. Locally
+# it resolved by accident — an old-style editable install had put backend/ on
+# sys.path. A clean `pip install -e .` does not, so state the dependency here.
+pythonpath = ["."]
+testpaths = ["tests"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
