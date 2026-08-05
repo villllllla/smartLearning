@@ -115,7 +115,31 @@ cd ..\frontend;  npm run build
 
 搭这套流水线时暴露出来的问题，有些当场修了，有些明确记账推后：
 
-**已修**（否则 CI 第一天就是红的）：
+**流水线上线当天抓到的两个真问题**（本地全绿，只有 CI 能发现）：
+
+1. **`tzdata` 只在 Windows 装** —— `pyproject.toml` 里写的是
+   `tzdata>=2024.1; sys_platform == 'win32'`，前提是"只有 Windows 缺系统时区库"。
+   但 `python:3.11-slim` 同样不带，于是容器里所有 zoneinfo 查询都失败，
+   包括迁移 `0011_timezone_refs.py`（它要给时区目录做种并逐条校验）：
+
+   ```
+   ZoneInfoNotFoundError: 'No time zone found with key America/Buenos_Aires'
+   ```
+
+   **生产一直没暴露**，因为那台机器的库早在 Windows 上迁移过了，
+   每次部署 `alembic upgrade head` 都直接跳过 0011。
+   但任何一次**全新部署或从备份恢复**都会起不来——正好是最需要它能用的时候。
+   是 `images` job 的冒烟测试抓到的：它拿**空库**启动镜像，
+   而这条路径恰恰是一个正在运行的生产栈永远不会走的。
+
+2. **`eval` 包只是碰巧能 import** —— `tests/test_agent_routing_eval.py` 依赖
+   `eval.routing_cases`，但 `eval` 被刻意排除在安装包之外
+   （`packages.find` 只 include `app*`）。本地能跑，纯粹是因为旧式 editable 安装
+   把 `backend/` 留在了 sys.path 上；干净的 `pip install -e .` 不会。
+   已改为在 `[tool.pytest.ini_options]` 里用 `pythonpath` 显式声明，
+   不再依赖"包当初是怎么装的"。
+
+**为让门禁能绿而先修的**（否则 CI 第一天就是红的）：
 
 - `tests/test_push_schedule.py` 有 2 个测试挂着 —— 生产代码的 `is_due_now()` 已经
   改成从数据库按租户取时区、新增了必填的 `db` 参数，测试还在用 row 上那个已被忽略的
