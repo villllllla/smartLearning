@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   BookOpen,
   BrainCircuit,
@@ -38,6 +39,16 @@ const NAV = [
 export function AppLayout() {
   const bulkPad = useBulkGenerateLayoutPad();
   const { user, logout, authEnabled } = useAuth();
+  const tabsRef = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+
+  // The mobile tab row scrolls, so the current destination can start off-screen
+  // when navigation comes from a link rather than a tap.
+  useEffect(() => {
+    tabsRef.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [pathname]);
 
   return (
     <div className="flex h-full flex-col md:flex-row">
@@ -94,13 +105,22 @@ export function AppLayout() {
       </aside>
 
       {/* Main content */}
-      <main className={cn("flex-1 min-w-0 overflow-y-auto pb-20 md:pb-0", bulkPad)}>
+      <main
+        className={cn(
+          "flex-1 min-w-0 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0",
+          bulkPad,
+        )}
+      >
         <Outlet />
       </main>
 
-      {/* Mobile bottom tab */}
+      {/* Mobile bottom tab. Nine destinations can't fit across a 360px screen, so
+          the row scrolls sideways with 72px tap targets. Wrapping onto a second
+          line instead would push the bar under the bulk-generate progress strip
+          and halve the visible content area. */}
       <nav
-        className="md:hidden fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/70"
+        ref={tabsRef}
+        className="md:hidden fixed inset-x-0 bottom-0 z-40 flex snap-x overflow-x-auto border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur [scrollbar-width:none] supports-[backdrop-filter]:bg-card/70 [&::-webkit-scrollbar]:hidden"
         aria-label="主导航"
       >
         {NAV.map((item) => (
@@ -109,7 +129,7 @@ export function AppLayout() {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                "flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] transition-colors",
+                "flex min-w-[4.5rem] shrink-0 snap-start flex-col items-center justify-center gap-0.5 py-2 text-[11px] transition-colors",
                 isActive ? "text-primary" : "text-muted-foreground",
               )
             }

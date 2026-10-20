@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 
 /** Read SL_BOT_API_TOKEN from backend/.env for dev proxy injection only. */
 function readBackendBotToken(): string {
@@ -47,7 +48,51 @@ export default defineConfig(({ command, mode }) => {
   define: proxyBotToken
     ? { "import.meta.env.VITE_SL_BOT_TOKEN": JSON.stringify(proxyBotToken) }
     : {},
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      // Registered by hand in main.tsx so the update path stays visible.
+      injectRegister: null,
+      includeAssets: ["favicon.svg", "apple-touch-icon-180x180.png"],
+      manifest: {
+        name: "SmartLearning · 智能知识管理与面试训练",
+        short_name: "SmartLearning",
+        description: "知识库 · 题库 · 刻意练习 · 待办与复习提醒",
+        lang: "zh-CN",
+        // Phones open this straight to the daily plan; change to "/" for the wiki list.
+        start_url: "/todos",
+        scope: "/",
+        display: "standalone",
+        theme_color: "#0f172a",
+        background_color: "#0f172a",
+        icons: [
+          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
+          {
+            src: "/pwa-maskable-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        // highlight.js + react-markdown push the main chunk past the 2 MiB default.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        navigateFallback: "/index.html",
+        // `/api/*` is deliberately left unrouted rather than given a NetworkOnly
+        // rule: an unmatched request never reaches the worker's fetch handler, so
+        // the SSE chat stream keeps flowing untouched. The denylist stops the
+        // navigation fallback from answering API calls with the app shell.
+        navigateFallbackDenylist: [/^\/api\//],
+        cleanupOutdatedCaches: true,
+      },
+      // A worker in dev would cache Vite's HMR client and fight the dev server.
+      devOptions: { enabled: false },
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

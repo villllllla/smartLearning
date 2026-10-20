@@ -35,7 +35,9 @@ export function BulkGenerateProgressBar() {
         onClick={showBulkGenerateBar}
         className={cn(
           "fixed z-[45] flex items-center gap-2 rounded-full border bg-card px-3 py-2 text-xs font-medium shadow-lg",
-          "bottom-20 right-3 md:bottom-4 md:right-4",
+          // Clears the mobile tab bar, which grows by the gesture-bar inset
+          // when the app runs installed (standalone) rather than in a tab.
+          "bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 md:bottom-4 md:right-4",
         )}
       >
         <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
@@ -55,7 +57,7 @@ export function BulkGenerateProgressBar() {
     <div
       className={cn(
         "fixed z-[45] border-t bg-card/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/90",
-        "inset-x-0 bottom-16 md:bottom-0 md:left-56",
+        "inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 md:left-56",
       )}
       role="status"
       aria-live="polite"
@@ -220,5 +222,5 @@ function ResultList({
 export function useBulkGenerateLayoutPad(): string {
   const task = useBulkGenerateTask();
   if (!task.active || !task.visible) return "";
-  return "pb-36 md:pb-28";
+  return "pb-[calc(9rem+env(safe-area-inset-bottom))] md:pb-28";
 }

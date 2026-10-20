@@ -7,7 +7,7 @@
     "skipLibCheck": true,
 
     "moduleResolution": "bundler",
-    "types": ["vite/client"],
+    "types": ["vite/client", "vite-plugin-pwa/client"],
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
